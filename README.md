@@ -8,7 +8,7 @@ This is a fleet management system (FMS).
 
 ### Tutorial
 
-### Folder Structure
+### File Structure
 
     .
     └── src                     # Source files
