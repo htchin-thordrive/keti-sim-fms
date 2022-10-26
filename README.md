@@ -11,6 +11,8 @@ This is a fleet management system (FMS).
 ### File Structure
 
     .
-    └── src                     # Source files
-    └── LICENSE
+    ├── src                     # Source files
+    │   └── main.py
+    ├── LICENSE
     └── README.md
+    
