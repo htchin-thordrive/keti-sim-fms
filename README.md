@@ -9,3 +9,6 @@ This is a fleet management system (FMS).
 ### Folder Structure
 
     .
+    └── src
+    └── LICENSE
+    └── README.md
