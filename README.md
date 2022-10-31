@@ -1,5 +1,5 @@
 # KETI-sim FMS
-This is a fleet management system (FMS) which helps to oversee all the movements of a fleet's vehicles.
+This repository provides a fleet management system (FMS) which helps to oversee all the movements of vehicles.
 
 ### 3rd Party Libraries
 
