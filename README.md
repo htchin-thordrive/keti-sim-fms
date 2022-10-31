@@ -9,6 +9,7 @@ This is a fleet management system (FMS).
 
 ### Tutorial
 ``` bash
+$ git clone https://github.com/thordrive/keti-sim-fms.git
 ```
 
 ### File Structure
