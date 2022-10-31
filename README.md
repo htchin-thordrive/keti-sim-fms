@@ -13,6 +13,6 @@ This is a fleet management system (FMS).
     .
     ├── src                     # Source files
     │   └── main.py             # Main file
-    ├── LICENSE
+    ├── LICENSE                 # License file
     └── README.md
     
