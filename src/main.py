@@ -1,12 +1,13 @@
 import rospy
-import std_msgs.string
+from std_msgs.msg import String, Float32
 from custom_msgs.msg import Reference, Goal, Localization, SemanticInfos, Nav
 class FMS:
     def __init__(self):
         # parameters
         self.pub_hz = 1.0
         self.car_ids = ["thor01","thor02","thor03"]
-        self.route_ids = ["1an","2an","3an"]
+        self.routes = ["1an","2an","3an"]
+        self.input_speed = 30.0/3.6
 
         self.vehicles = []
         self.vehicle_publishers = []
@@ -14,14 +15,22 @@ class FMS:
     def getVehicleIds(self):
         return self.car_ids
     
-    def checkVehicleNodeSet(self):
-        pass
+    def checkVehicleRouteShouldUpdated(self):
+        vehicles_should_be_updated = []
+        for vehicle_idx in range(len(self.vehicles)):
+            if self.vehicles[vehicle_idx].route is not self.routes[vehicle_idx]:
+                vehicles_should_be_updated.append(vehicle_idx)
+            else:
+                print("something matches")
+        return vehicles_should_be_updated
 
-    def pubSpeedLimit(self):
-        pass
+    def pubSpeedLimit(self, vehicle_idxs):
+        for vehicle_idx in vehicle_idxs:
+            self.vehicle_publishers[vehicle_idx].pubSpeedLimit(self.input_speed)        
 
-    def pubNodeSet(self):
-        pass
+    def pubRoute(self, vehicle_idxs):
+        for vehicle_idx in vehicle_idxs:
+            self.vehicle_publishers[vehicle_idx].pubRoute(self.routes[vehicle_idx])
     
 class Vehicle:
     def __init__(self, car_id):
@@ -31,41 +40,47 @@ class Vehicle:
         self.pose_estimator = None
         self.is_inter = None
         self.is_arrival = None
-        self.route_id = None
         self.semantic_infos = None
 
-        reference_sub = rospy.Subscriber(self.car_id + "/module/globalpath_reader/reference", Reference, self.poseEstimatorCallback, queue_size=1)
-        semantic_info_sub = rospy.Subscriber(self.car_id + "/module/map_reader/semantic_info", SemanticInfos, self.poseEstimatorCallback, queue_size=1)
-        nav_fusion_sub = rospy.Subscriber(self.car_id + "/sensor/nav/nav_fusion", Nav, self.navFusionCallback, queue_size=1)
-        pose_estimator_sub = rospy.Subscriber(self.car_id + "/module/localization/pose_estimator", Localization, self.poseEstimatorCallback, queue_size=1)
+        reference_sub = rospy.Subscriber("/" + self.car_id + "/module/globalpath_reader/reference", Reference, self.referenceCallback, queue_size=1)
+        semantic_info_sub = rospy.Subscriber("/" + self.car_id + "/module/map_reader/semantic_info", SemanticInfos, self.semanticInfoCallback, queue_size=1)
+        nav_fusion_sub = rospy.Subscriber("/" + self.car_id + "/sensor/nav/nav_fusion", Nav, self.navFusionCallback, queue_size=1)
+        pose_estimator_sub = rospy.Subscriber("/" + self.car_id + "/module/localization/pose_estimator", Localization, self.poseEstimatorCallback, queue_size=1)
 
     def referenceCallback(self, msg):
-        self.route = msg.data.request_id
-        self.is_arrival = msg.data.arrival_signal
+        print("referenceCallback")
+        self.route = msg.request_id
+        self.is_arrival = msg.arrival_signal
     
     def navFusionCallback(self, msg):
-        self.nav_fusion = msg.data
+        self.nav_fusion = msg
     
     def poseEstimatorCallback(self, msg):
-        self.pose_estimator = msg.data
+        self.pose_estimator = msg
     
     def semanticInfoCallback(self, msg):
-        self.semantic_infos = msg.data
+        self.semantic_infos = msg
 
 class VehiclePublisher:
     def __init__(self, car_id):
         self.car_id = car_id
-        route_pub = rospy.Publisher(self.car_id + "/module/globalpath_planner/goal", Goal, queue_size=1)
+        self.route_pub = rospy.Publisher("/" + self.car_id + "/module/globalpath_planner/goal", Goal, queue_size=1)
+        self.speed_limit_pub = rospy.Publisher("/" + self.car_id + "/module/new_velocity_planner/inputSpeed", Float32, queue_size=1)
 
-    def publish(self, route):
+    def pubRoute(self, route):
         goal = Goal()
-        Goal.route = route
+        goal.route = route
         self.route_pub.publish(goal)
     
+    def pubSpeedLimit(self, speed_limit):
+        speed_msg = Float32()
+        speed_msg.data = speed_limit
+        self.speed_limit_pub.publish(speed_msg)
 
     
 
-def main():
+def main():    
+    rospy.init_node('FMS', anonymous=True)
     fms = FMS()
     car_ids = fms.getVehicleIds()
 
@@ -76,8 +91,12 @@ def main():
         fms.vehicle_publishers.append(vehicle_publisher)
     
     while not rospy.is_shutdown():
-        fms.pubSpeedLimit()
-        fms.pubNodeSet()
+        print("\n")
+        # publish route and speed limit that doesn't match with the intended route
+        vehicles_should_be_updated =fms.checkVehicleRouteShouldUpdated()
+        fms.pubRoute(vehicles_should_be_updated)
+        fms.pubSpeedLimit(vehicles_should_be_updated)
+
         rospy.sleep(fms.pub_hz)
 
 
