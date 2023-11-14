@@ -6,7 +6,7 @@ class FMS:
         # parameters
         self.pub_hz = 1.0
         self.car_ids = ["thor01","thor02","thor03"]
-        self.routes = ["1an","2an","3an"]
+        self.routes = ['1an','2an','3an']
         self.input_speed = 30.0/3.6
 
         self.vehicles = []
@@ -15,13 +15,13 @@ class FMS:
     def getVehicleIds(self):
         return self.car_ids
     
+    # Check if the vehicle's route is the same as the intended route
     def checkVehicleRouteShouldUpdated(self):
         vehicles_should_be_updated = []
         for vehicle_idx in range(len(self.vehicles)):
-            if self.vehicles[vehicle_idx].route is not self.routes[vehicle_idx]:
+            # print(self.vehicles[vehicle_idx].route, self.routes[vehicle_idx])
+            if self.vehicles[vehicle_idx].route != self.routes[vehicle_idx]:
                 vehicles_should_be_updated.append(vehicle_idx)
-            else:
-                print("something matches")
         return vehicles_should_be_updated
 
     def pubSpeedLimit(self, vehicle_idxs):
@@ -48,7 +48,7 @@ class Vehicle:
         pose_estimator_sub = rospy.Subscriber("/" + self.car_id + "/module/localization/pose_estimator", Localization, self.poseEstimatorCallback, queue_size=1)
 
     def referenceCallback(self, msg):
-        print("referenceCallback")
+        # print("referenceCallback")
         self.route = msg.request_id
         self.is_arrival = msg.arrival_signal
     
@@ -91,9 +91,10 @@ def main():
         fms.vehicle_publishers.append(vehicle_publisher)
     
     while not rospy.is_shutdown():
-        print("\n")
-        # publish route and speed limit that doesn't match with the intended route
+        # print("\n")
+        # publish route and speed limit for the vehicles that don't match with the intended route
         vehicles_should_be_updated =fms.checkVehicleRouteShouldUpdated()
+        # print("vehicles_should_be_updated", vehicles_should_be_updated)
         fms.pubRoute(vehicles_should_be_updated)
         fms.pubSpeedLimit(vehicles_should_be_updated)
 
