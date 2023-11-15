@@ -38,6 +38,7 @@ class Vehicle:
         self.route = None
         self.nav_fusion = None
         self.pose_estimator = None
+        self.status = None
         self.is_inter = None
         self.is_arrival = None
         self.semantic_infos = None
@@ -46,6 +47,7 @@ class Vehicle:
         semantic_info_sub = rospy.Subscriber("/" + self.car_id + "/module/map_reader/semantic_info", SemanticInfos, self.semanticInfoCallback, queue_size=1)
         nav_fusion_sub = rospy.Subscriber("/" + self.car_id + "/sensor/nav/nav_fusion", Nav, self.navFusionCallback, queue_size=1)
         pose_estimator_sub = rospy.Subscriber("/" + self.car_id + "/module/localization/pose_estimator", Localization, self.poseEstimatorCallback, queue_size=1)
+        status_sub = rospy.Subscriber("/" + self.car_id + "/module/commander/state/driving_mode", String, self.statusCallback, queue_size=1)
 
     def referenceCallback(self, msg):
         # print("referenceCallback")
@@ -60,6 +62,9 @@ class Vehicle:
     
     def semanticInfoCallback(self, msg):
         self.semantic_infos = msg
+    
+    def statusCallback(self, msg):
+        self.status = msg.data
 
 class VehiclePublisher:
     def __init__(self, car_id):
@@ -77,7 +82,15 @@ class VehiclePublisher:
         speed_msg.data = speed_limit
         self.speed_limit_pub.publish(speed_msg)
 
-    
+def visualizeVehicleStatus(vehicles):
+    print("********** Autonomous Driving Cars **********")
+    for vehicle in vehicles:
+        print("Car ID    : ", vehicle.car_id)
+        print("Route     : ", vehicle.route) if vehicle.route is not None else print("Route     : None")
+        print("Speed     : ", vehicle.nav_fusion.speed) if vehicle.nav_fusion is not None else print("Speed     : None")
+        print("Location  : ", "(", vehicle.pose_estimator.x, ",", vehicle.pose_estimator.y, ")") if vehicle.pose_estimator is not None else print("Location  : None")
+        print("Status    : ", vehicle.status) if vehicle.status is not None else print("Status    : None")
+        print("---------------------------------------------")
 
 def main():    
     rospy.init_node('FMS', anonymous=True)
@@ -97,6 +110,7 @@ def main():
         # print("vehicles_should_be_updated", vehicles_should_be_updated)
         fms.pubRoute(vehicles_should_be_updated)
         fms.pubSpeedLimit(vehicles_should_be_updated)
+        visualizeVehicleStatus(fms.vehicles)
 
         rospy.sleep(fms.pub_hz)
 
